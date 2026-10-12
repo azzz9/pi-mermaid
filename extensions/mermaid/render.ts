@@ -31,6 +31,8 @@ export interface Renderer {
 export interface RenderOptions {
   scale?: number;
   background?: string;
+  /** Mermaid theme name, for example "dark". Omitted means mermaid's own default. */
+  theme?: string;
   timeoutMs?: number;
   /** Explicit mmdc path. Skips PATH probing. */
   command?: string;
@@ -45,7 +47,8 @@ export interface RenderedDiagram {
 }
 
 export const DEFAULT_SCALE = 2;
-export const DEFAULT_BACKGROUND = "white";
+/** Transparent so the diagram sits on the terminal background instead of a white slab. */
+export const DEFAULT_BACKGROUND = "transparent";
 export const DEFAULT_TIMEOUT_MS = 180_000;
 
 export async function findRenderer(exec: ExecFn, configured?: string): Promise<Renderer | undefined> {
@@ -83,13 +86,11 @@ export async function renderMermaidPng(
   const dir = await mkdtemp(join(tmpdir(), "pi-mermaid-"));
   const inputPath = join(dir, "diagram.mmd");
   const outputPath = join(dir, "diagram.png");
-  const scale = options.scale ?? DEFAULT_SCALE;
-  const background = options.background ?? DEFAULT_BACKGROUND;
   const timeout = options.timeoutMs ?? DEFAULT_TIMEOUT_MS;
 
   await writeFile(inputPath, code.endsWith("\n") ? code : `${code}\n`, "utf8");
 
-  const mmdcArgs = ["-i", inputPath, "-o", outputPath, "-s", String(scale), "-b", background];
+  const mmdcArgs = buildMmdcArgs(inputPath, outputPath, options);
   const started = Date.now();
   const result = renderer.kind === "nix-shell"
     ? await exec(
@@ -107,6 +108,14 @@ export async function renderMermaidPng(
 
   const png = await readFile(outputPath);
   return { filePath: outputPath, bytes: png.byteLength, ms, renderer: renderer.kind, stderr: result.stderr };
+}
+
+export function buildMmdcArgs(inputPath: string, outputPath: string, options: RenderOptions): string[] {
+  const scale = options.scale ?? DEFAULT_SCALE;
+  const background = options.background ?? DEFAULT_BACKGROUND;
+  const args = ["-i", inputPath, "-o", outputPath, "-s", String(scale), "-b", background];
+  if (options.theme) args.push("-t", options.theme);
+  return args;
 }
 
 function shellQuote(value: string): string {

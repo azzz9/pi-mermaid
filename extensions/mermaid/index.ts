@@ -36,19 +36,28 @@ const RenderParams = Type.Object({
   }),
   scale: Type.Optional(Type.Number({ description: "Device scale factor. Default 2." })),
   background: Type.Optional(
-    Type.String({ description: "Background color. Default white; use transparent for none." }),
+    Type.String({ description: "Background color. Default transparent; use white for a solid background." }),
+  ),
+  theme: Type.Optional(
+    Type.String({ description: "Mermaid theme: default, dark, forest, neutral. Omitted means mermaid's own default." }),
   ),
 });
 
 export default function (pi: ExtensionAPI): void {
   const autoRender = process.env.PI_MERMAID_AUTO !== "off";
+  const defaultBackground = process.env.PI_MERMAID_BACKGROUND?.trim() || undefined;
+  const defaultTheme = process.env.PI_MERMAID_THEME?.trim() || undefined;
   const handled = new Set<string>();
 
-  const render = async (code: string, scale?: number, background?: string) => {
+  const render = async (code: string, scale?: number, background?: string, theme?: string) => {
     const rendered = await renderMermaidPng(
       (command, args, options) => pi.exec(command, args, options),
       code,
-      { scale, background },
+      {
+        scale,
+        background: background ?? defaultBackground,
+        theme: theme ?? defaultTheme,
+      },
     );
     const data = await readFile(rendered.filePath);
     const entry: MermaidEntry = {
@@ -84,7 +93,7 @@ export default function (pi: ExtensionAPI): void {
     parameters: RenderParams,
 
     async execute(_toolCallId, params) {
-      const { entry, base64 } = await render(params.code, params.scale, params.background);
+      const { entry, base64 } = await render(params.code, params.scale, params.background, params.theme);
       return {
         content: [
           {

@@ -47,4 +47,26 @@ inline image in the transcript
 
 ## Status
 
-(append as work proceeds)
+Done:
+
+- Skeleton, `detect.ts`, `render.ts`, `index.ts`.
+- Unit tests (11) plus a live render test that runs only with `PI_MERMAID_LIVE_TEST=1`.
+- Real tool call through Pi: returned `/tmp/pi-mermaid-95KAia/diagram.png`.
+- Automatic rendering after a turn: custom entry recorded in the session log.
+- Default switched to a transparent background with an optional `theme`; verified through a real
+  render as `srgba` with corner alpha 0.
+- Side-by-side demo: mermaid fence against the same diagram as PNG.
+- Published at https://github.com/azzz9/pi-mermaid (default branch `main`).
+
+Remaining:
+
+- Install into dotfiles: flake input plus a `rows` entry in `modules/pi.nix`.
+- Optional npm publish. The git install path already works.
+- Delete the leftover `master` branch on the remote; the agent is blocked from deleting refs.
+
+## Environment found during verification
+
+- Terminal under herdr is Ghostty, but herdr passes `TERM=xterm-256color`, so Pi's image-protocol
+  detection fails. `terminal.images: "kitty"` fixes it.
+- `markdown.mermaid` was unset and the default did not render; setting `"final"` made Pi draw
+  mermaid as Unicode in the transcript.

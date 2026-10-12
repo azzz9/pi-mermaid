@@ -48,11 +48,25 @@ with `PI_MERMAID_AUTO=off`.
 **Tool.** `render_mermaid` lets the model ask for an image directly:
 
 ```json
-{ "code": "flowchart TD\n  A --> B", "scale": 2, "background": "white" }
+{ "code": "flowchart TD\n  A --> B", "scale": 2, "background": "transparent", "theme": "dark" }
 ```
 
 **Command.** `/mermaid` renders a fence already in the session. `/mermaid 2` picks the second one;
 the default is the most recent.
+
+## Background and theme
+
+The default is a transparent background with mermaid's standard theme, so the diagram sits on the
+terminal background instead of a white slab. A translucent background only works on a terminal
+that renders the alpha channel; use `background: "white"` when the image leaves the terminal.
+
+Per call, use the tool's `background` and `theme` parameters. For the whole session:
+
+```bash
+export PI_MERMAID_BACKGROUND=white   # solid background, better for sharing
+export PI_MERMAID_THEME=dark        # dark, forest, neutral, ...
+export PI_MERMAID_AUTO=off           # disable automatic rendering
+```
 
 ## Terminal support
 

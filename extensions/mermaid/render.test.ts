@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { execFile } from "node:child_process";
 import { test } from "node:test";
-import { findRenderer, renderMermaidPng, type ExecFn } from "./render.ts";
+import { buildMmdcArgs, findRenderer, renderMermaidPng, DEFAULT_BACKGROUND, type ExecFn } from "./render.ts";
 
 const shProbe = (line: string): string | undefined => {
   const match = /command -v (\S+)/.exec(line);
@@ -51,6 +51,17 @@ test("surfaces the renderer's own failure text", async () => {
     return { code: 1, stdout: "", stderr: "Error: Parse error on line 2" };
   };
   await assert.rejects(() => renderMermaidPng(exec, "not a diagram"), /Parse error on line 2/);
+});
+
+test("defaults to a transparent background and no theme flag", () => {
+  assert.equal(DEFAULT_BACKGROUND, "transparent");
+  const args = buildMmdcArgs("/in.mmd", "/out.png", {});
+  assert.deepEqual(args, ["-i", "/in.mmd", "-o", "/out.png", "-s", "2", "-b", "transparent"]);
+});
+
+test("passes scale, background, and theme through in mmdc order", () => {
+  const args = buildMmdcArgs("/in.mmd", "/out.png", { scale: 3, background: "white", theme: "dark" });
+  assert.deepEqual(args, ["-i", "/in.mmd", "-o", "/out.png", "-s", "3", "-b", "white", "-t", "dark"]);
 });
 
 test("renders a real PNG", { skip: process.env.PI_MERMAID_LIVE_TEST !== "1" }, async () => {
