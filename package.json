@@ -1,0 +1,30 @@
+{
+  "name": "@azzz9/pi-mermaid",
+  "version": "0.1.0",
+  "description": "Render mermaid diagrams from Pi output as PNG images in the terminal.",
+  "type": "module",
+  "license": "MIT",
+  "keywords": [
+    "pi-package",
+    "pi-extension",
+    "mermaid",
+    "diagram",
+    "png"
+  ],
+  "files": [
+    "extensions/",
+    "README.md",
+    "LICENSE"
+  ],
+  "pi": {
+    "extensions": [
+      "./extensions/mermaid/index.ts"
+    ]
+  },
+  "peerDependencies": {
+    "@earendil-works/pi-coding-agent": "*"
+  },
+  "scripts": {
+    "test": "node --test extensions/mermaid/detect.test.ts extensions/mermaid/render.test.ts"
+  }
+}
