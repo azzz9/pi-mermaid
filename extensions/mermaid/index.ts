@@ -10,6 +10,8 @@
  */
 import { readFileSync } from "node:fs";
 import { readFile } from "node:fs/promises";
+import { homedir } from "node:os";
+import { join } from "node:path";
 import { Type } from "@earendil-works/pi-ai";
 import {
   defineTool,
@@ -43,10 +45,30 @@ const RenderParams = Type.Object({
   ),
 });
 
+/**
+ * The cell budget for a rendered image. pi's own `terminal.imageWidthCells` is the source of
+ * truth, so this extension draws at the same size a built-in `read` would. PI_MERMAID_WIDTH
+ * overrides it when set.
+ */
+function resolveImageWidth(): number | undefined {
+  const fromEnv = Number.parseInt(process.env.PI_MERMAID_WIDTH ?? "", 10);
+  if (Number.isFinite(fromEnv) && fromEnv > 0) return fromEnv;
+  try {
+    const raw = readFileSync(join(homedir(), ".pi", "agent", "settings.json"), "utf8");
+    const parsed = JSON.parse(raw) as { terminal?: { imageWidthCells?: unknown } };
+    const value = parsed.terminal?.imageWidthCells;
+    if (typeof value === "number" && value > 0) return value;
+  } catch {
+    // No settings file is fine; the Image component keeps its own default.
+  }
+  return undefined;
+}
+
 export default function (pi: ExtensionAPI): void {
   const autoRender = process.env.PI_MERMAID_AUTO !== "off";
   const defaultBackground = process.env.PI_MERMAID_BACKGROUND?.trim() || undefined;
   const defaultTheme = process.env.PI_MERMAID_THEME?.trim() || undefined;
+  const imageWidth = resolveImageWidth();
   const handled = new Set<string>();
 
   const render = async (code: string, scale?: number, background?: string, theme?: string) => {
@@ -78,7 +100,7 @@ export default function (pi: ExtensionAPI): void {
         base64,
         "image/png",
         { fallbackColor: (text) => theme.fg("dim", text) },
-        { filename: data.path },
+        { filename: data.path, maxWidthCells: imageWidth },
       );
     } catch {
       return new Text(theme.fg("dim", `mermaid: cannot read ${data.path}`), 0, 0);
@@ -127,7 +149,7 @@ export default function (pi: ExtensionAPI): void {
       try {
         const { entry, base64 } = await render(blocks[index]!);
         await ctx.ui.custom<void>((_tui, theme, _keybindings, done) =>
-          new DiagramPane(base64, entry, theme, () => done())
+          new DiagramPane(base64, entry, theme, () => done(), imageWidth)
         );
       } catch (error) {
         ctx.ui.notify(error instanceof Error ? error.message : String(error), "error");
@@ -200,12 +222,13 @@ class DiagramPane implements Component {
     private info: MermaidEntry,
     private theme: Theme,
     private close: () => void,
+    maxWidthCells?: number,
   ) {
     this.image = new Image(
       base64,
       "image/png",
       { fallbackColor: (text) => theme.fg("dim", text) },
-      { filename: info.path },
+      { filename: info.path, maxWidthCells },
     );
   }
 
